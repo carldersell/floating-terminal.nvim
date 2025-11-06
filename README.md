@@ -1,4 +1,4 @@
-# floating-terminal.nvim
+# floating_terminal.nvim
 
 A lightweight Neovim plugin for quickly toggling floating and bottom terminals.
 Includes optional keymaps, built-in commands, and user-configurable default sizes.
@@ -22,7 +22,7 @@ Includes optional keymaps, built-in commands, and user-configurable default size
 
 ```lua
 {
-  "carldersell/floating-terminal.nvim",
+  "carldersell/floating_terminal.nvim",
   opts = {
     default_keymaps = true,
 
@@ -46,9 +46,9 @@ Includes optional keymaps, built-in commands, and user-configurable default size
 
 ```lua
 use {
-  "carldersell/floating-terminal.nvim",
+  "carldersell/floating_terminal.nvim",
   config = function()
-    require("floating-terminal").setup({
+    require("floating_terminal").setup({
       default_keymaps = true,
     })
   end,
@@ -62,7 +62,7 @@ use {
 ### Lua API
 
 ```lua
-local term = require("floating-terminal")
+local term = require("floating_terminal")
 
 term.toggle_floating_terminal()
 term.run_in_floating_terminal()
@@ -126,7 +126,7 @@ Both are supported.
 Enable them:
 
 ```lua
-require("floating-terminal").setup({
+require("floating_terminal").setup({
   default_keymaps = true,
 })
 ```

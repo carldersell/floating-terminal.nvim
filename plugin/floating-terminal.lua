@@ -3,7 +3,7 @@ if vim.g.loaded_floating_terminal then
 end
 vim.g.loaded_floating_terminal = true
 
-local terminal = require("floating-terminal")
+local terminal = require("floating_terminal")
 
 vim.api.nvim_create_user_command("ToggleFloatingTerminal", function(opts)
   terminal.toggle_floating_terminal(opts.args)

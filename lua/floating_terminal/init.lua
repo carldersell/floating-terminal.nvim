@@ -1,4 +1,4 @@
-local Config = require("floating-terminal.config")
+local Config = require("floating_terminal.config")
 
 local M = {}
 
