@@ -3,8 +3,8 @@ local Config = require("floating-terminal.config")
 local M = {}
 
 local state = {
-  floating = { buf = -1, win = -1 },
-  bottom = { buf = -1, win = -1 },
+  floating = { buf = -1, win = -1 , id = -1},
+  bottom = { buf = -1, win = -1 , id = -1},
 }
 
 ------------------------------------------------------------
@@ -101,10 +101,11 @@ local function toggle_terminal(state_entry, create_window, command, width, heigh
 
     if vim.bo[state_entry.buf].buftype ~= "terminal" then
       vim.cmd("terminal")
+      state_entry.id = vim.b.terminal_job_id
     end
 
     if command then
-      vim.fn.chansend(vim.b.terminal_job_id, command .. "\r\n")
+      vim.fn.chansend(state_entry.id, command .. "\r\n")
     end
   else
     vim.api.nvim_win_hide(state_entry.win)
@@ -119,11 +120,29 @@ function M.toggle_floating_terminal(command, width, height)
   toggle_terminal(state.floating, create_floating_window, command, width, height)
 end
 
+function M.run_in_floating_terminal(command)
+  if not vim.api.nvim_win_is_valid(state.floating.win) then
+    toggle_terminal(state.floating, create_floating_window, command, nil, nil)
+  elseif (command) then
+    vim.fn.chansend(state.floating.id, command .."\r\n")
+  end
+end
+
 function M.toggle_bottom_terminal(command, height)
   toggle_terminal(state.bottom, function(opts)
     opts.height = height
     return create_bottom_window(opts)
   end, command, nil, height)
+end
+
+function M.run_in_bottom_terminal(command)
+  if not vim.api.nvim_win_is_valid(state.bottom.win) then
+    toggle_terminal(state.bottom, function(opts)
+      return create_bottom_window(opts)
+    end, command, nil, nil)
+  elseif command then
+    vim.fn.chansend(state.bottom.id, command .."\r\n")
+  end
 end
 
 ------------------------------------------------------------

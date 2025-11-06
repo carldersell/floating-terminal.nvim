@@ -65,7 +65,9 @@ use {
 local term = require("floating-terminal")
 
 term.toggle_floating_terminal()
+term.run_in_floating_terminal()
 term.toggle_bottom_terminal()
+term.run_in_bottom_terminal()
 ```
 
 ### Commands
@@ -161,9 +163,17 @@ keymaps = {
 
 Open or hide the floating terminal, optionally sending a shell command.
 
+### run_in_floating_terminal(command)`
+
+Open floating terminal and run shell command
+
 ### `toggle_bottom_terminal(command?, height?)`
 
 Open or hide the bottom terminal, optionally sending a shell command.
+
+### run_in_bottom_terminal(command)`
+
+Open bottom terminal and run shell command
 
 ---
 
