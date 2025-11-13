@@ -1,10 +1,80 @@
 local Config = require("floating_terminal.config")
 
+-- Helper for correctly closing a process
+-- cross-platform process start time fetchers --------------------
+
+local function get_process_start_time_unix(pid)
+  local out = vim.fn.system({ "ps", "-o", "lstart=", "-p", tostring(pid) })
+  if not out or out == "" then
+    return nil
+  end
+  local t = vim.trim(out)
+  local epoch = vim.fn.strptime("%c", t)
+  return epoch > 0 and epoch or nil
+end
+
+local function get_process_start_time_windows(pid)
+  local ps_cmd = string.format(
+    "(Get-Process -Id %d).StartTime.ToUniversalTime().ToFileTimeUtc()",
+    pid
+  )
+  local out = vim.fn.system({ "powershell", "-NoProfile", "-Command", ps_cmd })
+  if not out or out == "" then
+    return nil
+  end
+  -- Windows FILETIME is 100-nanosecond intervals since 1601-01-01
+  local ft = tonumber((out:gsub("%s+", "")))
+  if not ft then
+    return nil
+  end
+  -- convert FILETIME to Unix epoch
+  return math.floor(ft / 10000000 - 11644473600)
+end
+
+local function get_process_start_time(pid)
+  if vim.fn.has("win32") == 1 then
+    return get_process_start_time_windows(pid)
+  else
+    return get_process_start_time_unix(pid)
+  end
+end
+
+-- verification --------------------------------------------------
+
+local function is_same_process(pid, saved_start_time)
+  if not (pid and saved_start_time) then
+    return false
+  end
+  local actual = get_process_start_time(pid)
+  if not actual then
+    return false
+  end
+  -- allow small rounding difference
+  return math.abs(actual - saved_start_time) < 10
+end
+
+local function cleanup(state_entry)
+  if state_entry and state_entry.pid then
+    local same = is_same_process(state_entry.pid, state_entry.start_time)
+    if same then
+      if state_entry.buf
+        and state_entry.buf >= 0
+        and vim.api.nvim_get_option_value('buftype', {["buf"] = state_entry.buf}) == 'terminal'
+      then
+        vim.cmd("bd! ".. state_entry.buf)
+      end
+      vim.notify("Killing running process PID: " .. state_entry.pid, vim.log.levels.WARN)
+      pcall(vim.uv.kill, state_entry.pid)
+    end
+  end
+end
+
+
 local M = {}
 
 local state = {
-  floating = { buf = -1, win = -1 , id = -1},
-  bottom = { buf = -1, win = -1 , id = -1},
+  floating = { buf = -1, win = -1 , id = -1, pid = nil, start_time = nil},
+  bottom = { buf = -1, win = -1 , id = -1, pid = nil, start_time = nil},
 }
 
 ------------------------------------------------------------
@@ -102,6 +172,8 @@ local function toggle_terminal(state_entry, create_window, command, width, heigh
     if vim.bo[state_entry.buf].buftype ~= "terminal" then
       vim.cmd("terminal")
       state_entry.id = vim.b.terminal_job_id
+      state_entry.pid = vim.b.terminal_job_pid
+      state_entry.start_time = os.time()
     end
 
     if command then
@@ -159,6 +231,15 @@ function M.setup(opts)
     vim.keymap.set("n", conf.keymaps.toggle_bottom, M.toggle_bottom_terminal, { desc = "Toggle Bottom Terminal" })
     vim.keymap.set("t", conf.keymaps.toggle_bottom, M.toggle_bottom_terminal, { desc = "Toggle Bottom Terminal" })
   end
+
+
+  -- Kill process and clean windows
+  vim.api.nvim_create_autocmd("VimLeavePre", {
+  callback = function()
+    cleanup(state.floating)
+    cleanup(state.bottom)
+  end,
+})
 end
 
 return M
